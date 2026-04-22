@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Dashboard</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #eef2ff, #f8fafc);
+  margin: 0;
+}
+
+/* NAVBAR */
+.navbar {
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  color: white;
+  padding: 18px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.navbar h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  color: white;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-success {
+  background: #22c55e;
+  color: white;
+}
+
+/* CONTAINER */
+.container {
+  max-width: 1000px;
+  margin: 50px auto;
+}
+
+/* CARD */
+.card {
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  padding: 25px;
+  border-radius: 16px;
+  margin-bottom: 25px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+/* STATS */
+.stats {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.stat-box {
+  flex: 1;
+  min-width: 180px;
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  padding: 20px;
+  border-radius: 14px;
+  text-align: center;
+  transition: 0.25s;
+}
+
+.stat-box:hover {
+  transform: translateY(-4px);
+}
+
+.stat-box h2 {
+  margin: 8px 0 0;
+  font-size: 26px;
+}
+select {
+  cursor: pointer;
+  background: white;
+}
+
+/* INPUTS */
+input, select {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+/* FILTER */
+.filter-box {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* EVENT LIST */
+.event-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px;
+  border-bottom: 1px solid #eee;
+}
+
+.event-title {
+  font-weight: 600;
+}
+
+.event-sub {
+  font-size: 13px;
+  color: gray;
+  margin-top: 4px;
+}
+
+.event-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* NOTIFICATIONS */
+#notifBox {
+  display: none;
+  position: absolute;
+  right: 30px;
+  top: 70px;
+  background: white;
+  padding: 12px;
+  width: 280px;
+  border-radius: 10px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+}
+
+/* ICON */
+.notif-icon {
+  font-size: 20px;
+  cursor: pointer;
+}
+
+  </style>
+</head>
+
+<body>
+
+<div class="navbar">
+  <h3>Admin Dashboard</h3>
+
+  <div class="nav-right">
+    <span class="notif-icon" onclick="toggleNotif()">🔔</span>
+    <button class="btn btn-primary" onclick="goToUsers()">Users</button>
+    <button class="btn btn-danger" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<div id="notifBox"></div>
+
+<div class="container">
+
+  <!-- DASHBOARD -->
+  <div class="card">
+    <h3>Dashboard Overview</h3>
+
+    <div class="stats">
+      <div class="stat-box">
+        <div>Total Events</div>
+        <h2 id="totalEvents">0</h2>
+      </div>
+
+      <div class="stat-box">
+        <div>Today Events</div>
+        <h2 id="todayEvents">0</h2>
+      </div>
+
+      <div class="stat-box">
+        <div>Available Rooms</div>
+        <h2 id="availableRooms">0</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROOM CONTROL -->
+  <div class="card">
+    <h3>Manage Rooms</h3>
+
+    <div class="filter-box">
+      <select id="roomSelect" onchange="updateRoomAction()">
+        <option>Select Room</option>
+      </select>
+
+      <button id="roomActionBtn" class="btn btn-primary" onclick="handleRoomAction()">
+        Action
+      </button>
+    </div>
+  </div>
+
+  <!-- FILTER -->
+  <div class="card">
+    <h3>Filter Events</h3>
+
+    <div class="filter-box">
+      <input type="date" id="filterDate">
+
+      <button class="btn btn-primary" onclick="loadEvents(true)">
+        Search
+      </button>
+
+      <button class="btn btn-danger" onclick="cancelFullDay()">
+        Cancel Day
+      </button>
+    </div>
+  </div>
+
+  <!-- EVENTS -->
+  <div class="card">
+    <h3>Events</h3>
+    <div id="events"></div>
+  </div>
+
+</div>
+
+<script>
+
+// AUTH CHECK
+if (!localStorage.getItem("userRole") || localStorage.getItem("userRole") !== "admin") {
+  window.location.href = "login.html";
+}
+
+// LOAD EVENTS WITH DATE FILTER
+function loadEvents(fromSearch = false){
+
+  const selectedDate = document.getElementById("filterDate").value;
+
+  // Only block if user clicked search
+  if(!selectedDate && fromSearch){
+    alert("Please select a date");
+    return;
+  }
+
+  // If no date on page load → load all events
+  let url = "http://localhost:5000/admin-events";
+
+  if(selectedDate){
+    url += `?date=${selectedDate}`;
+  }
+
+  document.getElementById("events").innerHTML = "Loading...";
+
+  fetch(url)
+  .then(res=>res.json())
+  .then(d=>{
+    let html = "";
+
+    if(!d.data || d.data.length === 0){
+      document.getElementById("events").innerHTML =
+        "<div style='color:gray'>No events found</div>";
+      return;
+    }
+
+    d.data.forEach(e=>{
+      html += `
+<div class="event-item">
+  <div class="event-title">${e.event_name}</div>
+
+  <div class="event-sub">Room: ${e.room_name}</div>
+  <div class="event-sub">Date: ${new Date(e.event_date).toLocaleDateString('en-IN')}</div>
+  <div class="event-sub">Time: ${e.time_slot}</div>
+
+  <button class="btn btn-cancel" onclick="cancelEvent(${e.id}, ${e.user_id})">
+    Cancel Event
+  </button>
+
+  <br><br>
+
+  <select id="room-${e.id}">
+    <option>Loading rooms...</option>
+  </select>
+
+  <button class="btn btn-search" onclick="changeRoom(${e.id})">
+    Alter Room
+  </button>
+</div>
+`;
+    });
+
+    document.getElementById("events").innerHTML = html;
+    loadAvailableRooms(d.data);
+  });
+}
+
+function loadStats(){
+
+  fetch("http://localhost:5000/admin-stats")
+  .then(res=>res.json())
+  .then(d=>{
+    if(!d.success) return;
+
+    document.getElementById("totalEvents").innerText = d.total;
+    document.getElementById("todayEvents").innerText = d.today;
+    document.getElementById("availableRooms").innerText = d.available;
+  });
+
+}
+
+function loadAvailableRooms(events){
+
+  events.forEach(e => {
+
+    fetch(`http://localhost:5000/available-rooms?date=${e.event_date}&time_slot=${encodeURIComponent(e.time_slot)}&current_room_id=${e.room_id}`)
+    .then(res=>res.json())
+    .then(d=>{
+
+      const select = document.getElementById(`room-${e.id}`);
+      if(!select) return;
+
+      console.log("Rooms for", e.id, d.data);
+
+      let options = `<option value="">Select new room</option>`;
+
+      (d.data || []).forEach(room=>{
+        options += `<option value="${room.id}">
+          ${room.room_name}
+        </option>`;
+      });
+
+      select.innerHTML = ""; // clear first
+
+      setTimeout(() => {
+        select.innerHTML = options;
+      }, 0);
+
+    });
+
+  });
+
+}
+// CANCEL EVENT
+function cancelEvent(event_id, user_id){
+
+  if(!confirm("Are you sure to cancel this event?")) return;
+
+  fetch("http://localhost:5000/cancel-event",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({event_id, user_id})
+  })
+  .then(res=>res.json())
+  .then(d=>{
+    if(d.success){
+      alert("Event Cancelled");
+      loadEvents();
+    }
+  });
+}
+
+function changeRoom(booking_id){
+
+  const newRoomId = document.getElementById(`room-${booking_id}`).value;
+
+  if(!newRoomId){
+    alert("Select a room first");
+    return;
+  }
+
+  fetch("http://localhost:5000/change-room",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      booking_id: booking_id,
+      new_room_id: newRoomId
+    })
+  })
+  .then(res=>res.json())
+  .then(d=>{
+    if(d.success){
+      alert("Room updated successfully ✅");
+      loadEvents();
+    }else{
+      alert("Failed to update");
+    }
+  });
+}
+
+// NOTIFICATIONS (ADMIN VIEW)
+function toggleNotif(){
+  fetch("http://localhost:5000/notifications?user_id=0")
+  .then(res=>res.json())
+  .then(d=>{
+    let html="";
+    (d.data || []).forEach(n=>{
+      html+=`<div>${n.message}</div>`;
+    });
+    const box = document.getElementById("notifBox");
+
+box.innerHTML = html;
+box.style.display = box.style.display === "block" ? "none" : "block";
+  });
+}
+
+function loadRoomsDropdown(){
+
+  fetch("http://localhost:5000/rooms")
+  .then(res=>res.json())
+  .then(d=>{
+
+    let options = `<option value="">Select Room</option>`;
+
+    (d.data || []).forEach(r=>{
+
+      const status = r.status || "available"; // safety
+
+      options += `
+        <option value="${r.id}" data-status="${status}">
+          ${r.room_name} (${status})
+        </option>
+      `;
+    });
+
+    document.getElementById("roomSelect").innerHTML = options;
+
+  });
+
+}
+function updateRoomAction(){
+
+  const select = document.getElementById("roomSelect");
+
+  if(!select.value){
+    document.getElementById("roomActionBtn").innerText = "Action";
+    return;
+  }
+
+  const status = select.options[select.selectedIndex].getAttribute("data-status");
+
+  if(status === "available"){
+    document.getElementById("roomActionBtn").innerText = "Block";
+  } else {
+    document.getElementById("roomActionBtn").innerText = "Unblock";
+  }
+
+}
+function blockRoom(){
+
+  const room_id = document.getElementById("roomSelect").value;
+
+  if(!room_id){
+    alert("Select a room");
+    return;
+  }
+
+  fetch("http://localhost:5000/toggle-room",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ room_id, status: "unavailable" })
+  })
+  .then(res=>res.json())
+  .then(d=>{
+    if(d.success){
+      alert("Room Blocked");
+      loadStats();
+    }
+  });
+
+}
+function unblockRoom(){
+
+  const room_id = document.getElementById("roomSelect").value;
+
+  if(!room_id){
+    alert("Select a room");
+    return;
+  }
+
+  fetch("http://localhost:5000/toggle-room",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ room_id, status: "available" })
+  })
+  .then(res=>res.json())
+  .then(d=>{
+    if(d.success){
+      alert("Room Unblocked");
+      loadStats();
+    }
+  });
+
+}
+
+function cancelFullDay(){
+
+  const date = document.getElementById("filterDate").value;
+
+  if(!date){
+    alert("Select a date first");
+    return;
+  }
+
+  if(!confirm("Cancel ALL events for this date?")) return;
+
+  fetch("http://localhost:5000/cancel-day",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ date })
+  })
+  .then(res=>res.json())
+  .then(d=>{
+    if(d.success){
+      alert("All events cancelled for selected date");
+
+      loadEvents(); // refresh events
+      loadStats();  // update dashboard
+    }
+  });
+
+}
+
+function handleRoomAction(){
+
+  const select = document.getElementById("roomSelect");
+  const room_id = select.value;
+
+  if(!room_id){
+    alert("Select a room");
+    return;
+  }
+
+  const selectedOption = select.options[select.selectedIndex];
+  const currentStatus = selectedOption.getAttribute("data-status");
+
+  const newStatus = currentStatus === "available" ? "unavailable" : "available";
+
+  fetch("http://localhost:5000/toggle-room",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ room_id, status: newStatus })
+  })
+  .then(res=>res.json())
+  .then(d=>{
+    if(d.success){
+
+      alert("Room updated");
+
+      setTimeout(() => {
+
+  loadRoomsDropdown();
+  loadStats();
+
+  // reset selection AFTER reload
+  document.getElementById("roomSelect").value = "";
+
+  document.getElementById("roomActionBtn").innerText = "Action";
+
+}, 200);
+
+    }
+  });
+
+}
+
+// LOGOUT
+function logout(){
+  localStorage.clear();
+  window.location.href="login.html";
+}
+
+
+// LOAD ALL BY DEFAULT
+window.onload = () => {
+  const today = new Date().toISOString().split("T")[0];
+  document.getElementById("filterDate").value = today;
+
+  loadEvents();
+  loadStats();   
+  loadRoomsDropdown();
+};
+
+function goToUsers(){
+  window.location.href = "users.html";
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Bookings</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+   /* RESET */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #eef2ff, #f8fafc);
+  margin: 0;
+}
+
+/* NAVBAR */
+.navbar {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  color: white;
+  padding: 18px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.navbar h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.navbar button {
+  background: white;
+  color: #1e40af;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+.navbar button:hover {
+  transform: translateY(-1px);
+}
+
+/* CONTAINER */
+.container {
+  max-width: 800px;
+  margin: 50px auto;
+}
+
+/* CARD */
+.history-card {
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  padding: 18px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  transition: 0.25s;
+}
+
+.history-card:hover {
+  transform: translateY(-3px);
+}
+
+/* TEXT */
+.title {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.sub {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 3px;
+}
+
+/* ACTION ROW */
+.action-row {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* BUTTONS */
+button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 12px rgba(0,0,0,0.15);
+}
+
+.btn-change {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  color: white;
+}
+
+.btn-report {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-confirm {
+  background: #22c55e;
+  color: white;
+}
+
+/* SELECT */
+select {
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 13px;
+  min-width: 150px;
+}
+
+/* DISABLED STATE */
+select:disabled,
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* EMPTY TEXT */
+.empty {
+  text-align: center;
+  color: gray;
+  margin-top: 20px;
+  font-size: 14px;
+}
+select {
+  cursor: pointer;
+  background: white;
+}
+  </style>
+</head>
+
+<body>
+
+<div class="navbar">
+  <h3>My Bookings</h3>
+  <button onclick="goBack()">Back</button>
+</div>
+
+<div class="container" id="list"></div>
+
+<script>
+
+const userId = localStorage.getItem("userId");
+
+function loadBookings(){
+
+fetch(`http://localhost:5000/bookings?user_id=${userId}`)
+.then(res=>res.json())
+.then(d=>{
+
+if(!d.success){
+  document.getElementById("list").innerText = "Error loading";
+  return;
+}
+
+// ✅ SAFE CHECK (prevents blank page)
+if(!d.data || d.data.length === 0){
+  document.getElementById("list").innerHTML = "No bookings found";
+  return;
+}
+
+let html="";
+
+d.data.forEach(e=>{
+html += `
+<div class="history-card">
+
+  <div class="title">${e.event_name}</div>
+  <div class="sub">
+    ${new Date(e.event_date).toLocaleDateString('en-IN')} | ${e.time_slot}
+  </div>
+  <div class="sub">Room: ${e.room_name}</div>
+
+  <div class="action-row">
+    <button class="btn-change"
+onclick="checkAndChangeRoom(${e.booking_id}, '${e.event_date}', '${e.time_slot}', ${e.room_id})">
+Change Room
+</button>
+
+    <button class="btn-report"
+      onclick="reportIssue(${e.booking_id})">
+      Report Issue
+    </button>
+  </div>
+
+  <div class="action-row">
+    <select id="em-room-${e.booking_id}" disabled>
+      <option value="">Select Room</option>
+    </select>
+
+    <button class="btn-confirm"
+      id="btn-${e.booking_id}"
+      onclick="changeEmergencyRoom(${e.booking_id})"
+      disabled>
+      Confirm
+    </button>
+  </div>
+
+</div>
+`;
+});
+
+// ✅ RENDER FIRST
+document.getElementById("list").innerHTML = html;
+
+// ✅ ADD EVENT LISTENERS (VERY IMPORTANT FIX)
+d.data.forEach(e=>{
+  const select = document.getElementById(`em-room-${e.booking_id}`);
+  const btn = document.getElementById(`btn-${e.booking_id}`);
+
+  if(select && btn){
+    select.addEventListener("change", function(){
+      btn.disabled = !this.value;
+    });
+  }
+});
+
+});
+} 
+function checkAndChangeRoom(booking_id, date, time_slot, currentRoomId){
+
+fetch(`http://localhost:5000/can-change-room?booking_id=${booking_id}`)
+.then(res=>res.json())
+.then(d=>{
+
+if(!d.allow){
+  alert("❌ You can only change room within 5 hours of event");
+  return;
+}
+
+const select = document.getElementById(`em-room-${booking_id}`);
+select.disabled = false;
+
+// ✅ FIX: proper encoding + console debug
+fetch(`http://localhost:5000/available-rooms?date=${date}&time_slot=${encodeURIComponent(time_slot)}&current_room_id=${currentRoomId}`)
+.then(res=>res.json())
+.then(r=>{
+
+console.log("ROOM API:", r); // 👈 MUST CHECK
+
+let options = `<option value="">Select Room</option>`;
+
+if(r.data && r.data.length > 0){
+  r.data.forEach(room=>{
+    options += `<option value="${room.id}">${room.room_name}</option>`;
+  });
+}else{
+  options += `<option>No rooms available</option>`;
+}
+
+select.innerHTML = options;
+
+});
+
+});
+}
+function changeEmergencyRoom(booking_id){
+
+  const newRoom = document.getElementById(`em-room-${booking_id}`).value;
+
+  if(!newRoom){
+    alert("Select room");
+    return;
+  }
+
+  fetch("http://localhost:5000/change-room",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      booking_id: booking_id,
+      new_room_id: newRoom
+    })
+  })
+  .then(res=>res.json())
+  .then(d=>{
+  if(d.success){
+    alert("Room changed successfully");
+    location.reload();
+  } else {
+    alert(d.message || "Room change failed");
+  }
+});
+
+}
+function reportIssue(booking_id){
+
+  fetch("http://localhost:5000/report-issue",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      booking_id: booking_id,
+      user_id: localStorage.getItem("userId")
+    })
+  })
+  .then(res=>res.json())
+  .then(()=>{
+  alert("✅ Issue reported!\nAdmin will check and update your room soon.");
+});
+
+}
+
+function goBack(){
+  window.location.href = "student.html";
+}
+
+window.onload = loadBookings;
+
+</script>
+
+</body>
+</html>

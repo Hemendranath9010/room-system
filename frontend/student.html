@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Student Dashboard</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #eef2ff, #f8fafc);
+  margin: 0;
+}
+
+/* NAVBAR */
+.navbar {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  color: white;
+  padding: 16px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.navbar h2 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* NAV BUTTONS */
+.nav-btn {
+  background: rgba(255,255,255,0.15);
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+.nav-btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+/* LOGOUT */
+.logout {
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+.logout:hover {
+  opacity: 1;
+}
+
+/* BELL */
+.bell {
+  font-size: 20px;
+  cursor: pointer;
+  position: relative;
+}
+
+.badge {
+  position: absolute;
+  top: -5px;
+  right: -8px;
+  background: #ef4444;
+  color: white;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 50%;
+}
+
+/* CONTAINER */
+.container {
+  max-width: 700px;
+  margin: 60px auto;
+}
+
+/* CARD */
+.card {
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+}
+
+/* TITLE */
+h3 {
+  margin-bottom: 20px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* INPUT GROUP */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* INPUTS */
+input, select {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  font-size: 14px;
+  background: white;
+  transition: 0.2s;
+}
+
+input:focus, select:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+
+/* BUTTON */
+button {
+  margin-top: 12px;
+  height: 48px;
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(37,99,235,0.3);
+}
+
+/* EQUIPMENT */
+.equip-title {
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.checkbox-group {
+  display: flex;
+  gap: 20px;
+  margin-top: 6px;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+/* NOTIFICATION BOX */
+#notifBox {
+  display: none;
+  position: absolute;
+  right: 30px;
+  top: 70px;
+  background: white;
+  padding: 12px;
+  border-radius: 12px;
+  width: 260px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+</style>
+</head>
+
+<body>
+
+<div class="navbar">
+  <h2>Student Dashboard</h2>
+
+  <div class="nav-right">
+
+     <button class="nav-btn" onclick="goToHistory()">History</button>
+  <button class="nav-btn" onclick="goToBookings()">Bookings</button>
+ 
+
+
+  <div class="bell" onclick="toggleNotif()">
+    🔔
+    <span id="count" class="badge">0</span>
+  </div>
+
+  <div class="logout" onclick="logout()">Logout</div>
+
+</div>
+</div>
+
+<div id="notifBox"></div>
+
+<div class="container">
+
+  <!-- BOOK EVENT -->
+  <div class="card">
+    <h3>Book Event</h3>
+
+    <div class="input-group">
+      <input id="event_name" placeholder="Enter event name">
+
+<select id="event_type">
+  <option>Seminar</option>
+  <option>Hackathon</option>
+  <option>Guest Lecture</option>
+  <option>Workshop</option>
+  <option>Non-Technical</option>
+  <option>Other</option>
+</select>
+
+<input type="date" id="date" min="">
+
+<div style="display:flex; gap:10px;">
+  
+  <input type="text" id="time" placeholder="Enter time (e.g., 10:00 AM - 12:00 PM)">
+
+</div>
+
+<input type="number" id="audience" placeholder="Expected audience">
+
+<select id="room_type">
+  <option>AC</option>
+  <option>Non-AC</option>
+</select>
+
+<div class="equipment-box">
+  <label class="equip-title">Select Equipment</label>
+
+  <div class="checkbox-group">
+    <label>
+      <input type="checkbox" value="projector"> Projector
+    </label>
+
+    <label>
+      <input type="checkbox" value="speakers"> Speakers
+    </label>
+
+    <label>
+      <input type="checkbox" value="wifi"> WiFi
+    </label>
+  </div>
+</div>
+
+
+      <button type="button" onclick="submitEvent()">Submit</button>
+    </div>
+  </div>  
+</div>
+
+<script>
+
+// AUTH CHECK
+if (!localStorage.getItem("userId")) {
+  window.location.href = "login.html";
+}
+
+const userId = localStorage.getItem("userId");
+
+const min = new Date();
+min.setDate(min.getDate() + 3);
+
+const minStr = min.toISOString().split("T")[0];
+document.getElementById("date").setAttribute("min", minStr);
+
+
+// SUBMIT EVENT
+function submitEvent(){
+
+  try {
+
+    console.log("Submit clicked ✅");
+
+    const name = document.getElementById("event_name").value;
+    const date = document.getElementById("date").value;
+    const rawTime = document.getElementById("time").value;
+    const today = new Date();
+today.setHours(0,0,0,0);
+
+// minimum allowed date = today + 3 days
+const minDate = new Date();
+minDate.setDate(minDate.getDate() + 3);
+minDate.setHours(0,0,0,0);
+
+const selectedDate = new Date(date);
+
+if(selectedDate < minDate){
+  alert("❌ You can only book at least 3 days in advance");
+  return;
+}
+// 👉 SAME DAY TIME CHECK
+if(selectedDate.getTime() === today.getTime()){
+  
+  if(!rawTime.includes("-") || (!rawTime.includes("AM") && !rawTime.includes("PM"))){
+  alert("Use format: 10:00 AM - 12:00 PM");
+  return;
+}
+  // example: "10:00 AM - 12:00 PM"
+  const startTime = rawTime.split("-")[0].trim();
+
+  function convertTo24(timeStr){
+    let [time, modifier] = timeStr.split(" ");
+    let [hours, minutes] = time.split(":");
+
+    if(modifier === "PM" && hours !== "12"){
+      hours = parseInt(hours) + 12;
+    }
+    if(modifier === "AM" && hours === "12"){
+      hours = "00";
+    }
+
+    return `${hours}:${minutes}`;
+  }
+
+  const start24 = convertTo24(startTime);
+  const now = new Date();
+
+  const [h, m] = start24.split(":");
+  const eventTime = new Date();
+  eventTime.setHours(h, m, 0, 0);
+
+  if(eventTime < now){
+    alert("❌ Cannot select past time");
+    return;
+  }
+} 
+    
+    if(!rawTime.includes("-") || (!rawTime.includes("AM") && !rawTime.includes("PM"))){
+  alert("Use format: 10:00 AM - 12:00 PM");
+  return;
+}
+
+    if(!name || !date || !rawTime){
+      alert("Fill all fields properly");
+      return;
+    }
+
+    const selectedEquip = Array.from(
+      document.querySelectorAll(".checkbox-group input:checked")
+    ).map(el => el.value);
+
+    // safe replace
+    const fixedTime = (rawTime || "").replace(/\./g, ":");
+
+    console.log("TIME:", fixedTime);
+
+    fetch("http://localhost:5000/submit-event",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        event_name: name,
+        event_type:document.getElementById("event_type").value,
+        event_date: date,
+        time_slot: fixedTime,
+        audience:document.getElementById("audience").value,
+        room_type:document.getElementById("room_type").value,
+        equipment:selectedEquip,
+        user_id:userId
+      })
+    })
+    .then(res=>res.json())
+    .then(d=>{
+      console.log("RESPONSE:", d);
+
+      if(d.success){
+        alert("Room allocated: "+d.room);
+        loadCount();
+      }else{
+        alert(d.message);
+      }
+    })
+    .catch(err=>{
+      console.error(err);
+      alert("Server error");
+    });
+
+  } catch(e){
+    console.error("Error occurred");
+    alert("JS crashed - check console");
+  }
+}
+// LOAD HISTORY
+function loadHistory(){
+  fetch(`http://localhost:5000/history?user_id=${userId}`)
+  .then(res=>res.json())
+  .then(d=>{
+    if(!d.success){
+      document.getElementById("history").innerText = "Error loading";
+      return;
+    }
+
+    let html="";
+    (d.data || []).forEach(e=>{
+      html += `
+      <div class="history-card">
+        <b>${e.event_name}</b><br>
+        ${new Date(e.event_date).toLocaleDateString('en-IN')} | ${e.time_slot}<br>
+        Room: ${e.room_name}
+      </div>
+      `;
+    });
+
+    document.getElementById("history").innerHTML = html || "No history";
+  });
+}
+// NOTIFICATIONS
+let notifOpen = false;
+
+function toggleNotif(){
+
+  const box = document.getElementById("notifBox");
+
+  if (notifOpen) {
+    box.style.display = "none";
+    notifOpen = false;
+    return;
+  }
+fetch(`http://localhost:5000/notifications?user_id=${userId}`)
+  .then(res=>res.json())
+  .then(d=>{
+
+    let html="";
+
+    (d.data || []).forEach(n=>{
+      html += `
+      <div style="padding:10px;border-bottom:1px solid #eee;">
+        ${n.message}
+      </div>`;
+    });
+
+   box.innerHTML = html + `
+<div style="text-align:center;margin-top:10px;">
+  <button onclick="clearNotifications()" style="
+    padding:6px 12px;
+    border:none;
+    background:#EF4444;
+    color:white;
+    border-radius:6px;">
+    Clear
+  </button>
+</div>
+`;
+    box.style.display = "block";
+
+    document.getElementById("count").style.display = "none";
+
+    notifOpen = true;
+  });
+}
+
+document.addEventListener("click", function(e){
+  if (!e.target.closest(".bell") && !e.target.closest("#notifBox")) {
+    document.getElementById("notifBox").style.display = "none";
+    notifOpen = false;
+  }
+});
+
+
+
+// BADGE COUNT
+function loadCount(){
+fetch(`http://localhost:5000/notifications?user_id=${userId}`)
+.then(res=>res.json())
+.then(d=>{
+if(d.data && d.data.length > 0){
+document.getElementById("count").innerText = d.data.length;
+document.getElementById("count").style.display="inline";
+}
+});
+}
+
+// LOGOUT
+function logout(){
+localStorage.clear();
+window.location.href="login.html";
+}
+
+// INITIAL LOAD
+document.addEventListener("DOMContentLoaded", function () {
+  loadCount();
+});
+
+function goToBookings(){
+  window.location.href = "bookings.html";
+}
+function goToHistory(){
+  window.location.href = "history.html";
+} 
+function clearNotifications(){
+fetch(`http://localhost:5000/clear-notifications?user_id=${userId}`,{
+method:"DELETE"
+})
+.then(()=> {
+  document.getElementById("notifBox").innerHTML = "No notifications";
+  document.getElementById("count").style.display = "none";
+});
+}
+
+function clearHistory(){
+fetch(`http://localhost:5000/clear-history?user_id=${userId}`,{
+method:"DELETE"
+})
+.then(res => res.json())
+.then(d=>{
+  if(d.success){
+    loadHistory();   // 🔥 reload properly
+  } else {
+    alert("Error clearing history");
+  }
+})
+.catch(()=>{
+  alert("Server error");
+});
+}
+
+</script>
+
+</body>
+</html>

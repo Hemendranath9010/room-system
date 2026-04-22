@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>History</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #eef2ff, #f8fafc);
+  margin: 0;
+}
+
+/* NAVBAR */
+.navbar {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  color: white;
+  padding: 18px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.navbar h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.navbar button {
+  background: white;
+  color: #1e40af;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+/* CONTAINER */
+.container {
+  max-width: 800px;
+  margin: 50px auto;
+}
+
+/* CARD */
+.card {
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  transition: 0.25s;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+}
+
+/* TEXT */
+.title {
+  font-weight: 600;
+  font-size: 17px;
+  margin-bottom: 6px;
+}
+
+.sub {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 3px;
+}
+
+/* CLEAR BUTTON */
+.clear-box {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.clear-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  background: #ef4444;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.clear-btn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+/* EMPTY TEXT */
+.empty {
+  text-align: center;
+  color: gray;
+  margin-top: 20px;
+}
+
+  </style>
+</head>
+
+<body>
+
+<div class="navbar">
+  <h3>📜 History</h3>
+  <button onclick="goBack()">Back</button>
+</div>
+
+<div class="container" id="list"></div>
+
+<div class="clear-box">
+  <button class="clear-btn" onclick="clearHistory()">Clear History</button>
+</div>
+
+<script>
+
+const userId = localStorage.getItem("userId");
+
+function loadHistory(){
+
+fetch(`http://localhost:5000/history?user_id=${userId}`)
+.then(res => res.json())
+.then(d => {
+
+  if(!d.success){
+    document.getElementById("list").innerText = "Error loading";
+    return;
+  }
+
+  let html = "";
+
+  (d.data || []).forEach(e => {
+    html += `
+    <div class="card">
+      <div class="title">${e.event_name}</div>
+      <div class="sub">📅 ${new Date(e.event_date).toLocaleDateString()}</div>
+      <div class="sub">⏰ ${e.time_slot}</div>
+      <div class="sub">🏫 ${e.room_name}</div>
+    </div>
+    `;
+  });
+
+  document.getElementById("list").innerHTML =
+    html || "<div class='empty'>No history found</div>";
+
+})
+.catch(()=>{
+  document.getElementById("list").innerText = "Server error";
+});
+
+}
+
+function clearHistory(){
+fetch(`http://localhost:5000/clear-history?user_id=${userId}`,{
+  method:"DELETE"
+})
+.then(res=>res.json())
+.then(d=>{
+  if(d.success){
+    loadHistory();
+  }
+});
+}
+
+function goBack(){
+  window.location.href = "student.html";
+}
+
+window.onload = loadHistory;
+
+</script>
+
+</body>
+</html>

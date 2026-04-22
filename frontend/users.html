@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Manage Users</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #F1F5F9;
+      margin: 0;
+    }
+
+    .navbar {
+      background: #1E293B;
+      color: white;
+      padding: 16px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+    }
+
+    .user-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .user-info {
+      font-size: 14px;
+    }
+
+    .btn-delete {
+      background: #EF4444;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-back {
+      background: #2563EB;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="navbar">
+  <h3>Manage Users</h3>
+  <button class="btn-back" onclick="goBack()">Back</button>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <h3>All Users</h3>
+    <div id="usersList">Loading...</div>
+  </div>
+
+</div>
+
+<script>
+
+// AUTH CHECK
+if (!localStorage.getItem("userRole") || localStorage.getItem("userRole") !== "admin") {
+  window.location.href = "login.html";
+}
+
+// LOAD USERS
+function loadUsers(){
+
+  fetch("http://localhost:5000/users")
+  .then(res=>res.json())
+  .then(d=>{
+
+    let html = "";
+
+    if(!d.data || d.data.length === 0){
+      document.getElementById("usersList").innerText = "No users found";
+      return;
+    }
+
+    d.data.forEach(u=>{
+
+  html += `
+  <div class="user-item">
+    <div class="user-info">
+      <b>${u.name}</b><br>
+      ${u.email}<br>
+      Status: ${u.status}
+    </div>
+
+    <div>
+      <button 
+        class="${u.status === 'active' ? 'btn-block' : 'btn-unblock'}"
+        onclick="toggleUser(${u.id}, '${u.status === 'active' ? 'blocked' : 'active'}')"
+      >
+        ${u.status === 'active' ? 'Block' : 'Unblock'}
+      </button>
+
+      <button class="btn-delete" onclick="deleteUser(${u.id})">
+        Delete
+      </button>
+    </div>
+  </div>
+  `;
+});
+
+    document.getElementById("usersList").innerHTML = html;
+
+  });
+
+}
+
+// DELETE USER
+function deleteUser(user_id){
+
+  if(!confirm("Are you sure to delete this user?")) return;
+
+  fetch("http://localhost:5000/delete-user",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ user_id })
+  })
+  .then(res=>res.json())
+  .then(d=>{
+    if(d.success){
+      alert("User deleted");
+      loadUsers();
+    }
+  });
+
+}
+
+function toggleUser(user_id, newStatus){
+
+  fetch("http://localhost:5000/toggle-user",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ user_id, status: newStatus })
+  })
+  .then(res=>res.json())
+  .then(d=>{
+    if(d.success){
+      loadUsers();
+    }
+  });
+
+}
+
+// BACK
+function goBack(){
+  window.location.href = "admin.html";
+}
+
+// INIT
+window.onload = loadUsers;
+
+</script>
+
+</body>
+</html>
