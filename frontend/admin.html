@@ -279,7 +279,7 @@ function loadEvents(fromSearch = false){
   }
 
   // If no date on page load → load all events
-  let url = "http://localhost:5000/admin-events";
+  let url = "https://room-system-backend.onrender.com/admin-events";
 
   if(selectedDate){
     url += `?date=${selectedDate}`;
@@ -331,7 +331,7 @@ function loadEvents(fromSearch = false){
 
 function loadStats(){
 
-  fetch("http://localhost:5000/admin-stats")
+  fetch("https://room-system-backend.onrender.com/admin-stats")
   .then(res=>res.json())
   .then(d=>{
     if(!d.success) return;
@@ -347,7 +347,7 @@ function loadAvailableRooms(events){
 
   events.forEach(e => {
 
-    fetch(`http://localhost:5000/available-rooms?date=${e.event_date}&time_slot=${encodeURIComponent(e.time_slot)}&current_room_id=${e.room_id}`)
+    fetch(`https://room-system-backend.onrender.com/available-rooms?date=${e.event_date}&time_slot=${encodeURIComponent(e.time_slot)}&current_room_id=${e.room_id}`)
     .then(res=>res.json())
     .then(d=>{
 
@@ -380,7 +380,7 @@ function cancelEvent(event_id, user_id){
 
   if(!confirm("Are you sure to cancel this event?")) return;
 
-  fetch("http://localhost:5000/cancel-event",{
+  fetch("https://room-system-backend.onrender.com/cancel-event",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({event_id, user_id})
@@ -403,7 +403,7 @@ function changeRoom(booking_id){
     return;
   }
 
-  fetch("http://localhost:5000/change-room",{
+  fetch("https://room-system-backend.onrender.com/change-room",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
@@ -424,7 +424,7 @@ function changeRoom(booking_id){
 
 // NOTIFICATIONS (ADMIN VIEW)
 function toggleNotif(){
-  fetch("http://localhost:5000/notifications?user_id=0")
+  fetch("https://room-system-backend.onrender.com/notifications?user_id=0")
   .then(res=>res.json())
   .then(d=>{
     let html="";
@@ -440,7 +440,7 @@ box.style.display = box.style.display === "block" ? "none" : "block";
 
 function loadRoomsDropdown(){
 
-  fetch("http://localhost:5000/rooms")
+  fetch("https://room-system-backend.onrender.com/rooms")
   .then(res=>res.json())
   .then(d=>{
 
@@ -489,7 +489,7 @@ function blockRoom(){
     return;
   }
 
-  fetch("http://localhost:5000/toggle-room",{
+  fetch("https://room-system-backend.onrender.com/toggle-room",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({ room_id, status: "unavailable" })
@@ -512,7 +512,7 @@ function unblockRoom(){
     return;
   }
 
-  fetch("http://localhost:5000/toggle-room",{
+  fetch("https://room-system-backend.onrender.com/toggle-room",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({ room_id, status: "available" })
@@ -538,7 +538,7 @@ function cancelFullDay(){
 
   if(!confirm("Cancel ALL events for this date?")) return;
 
-  fetch("http://localhost:5000/cancel-day",{
+  fetch("https://room-system-backend.onrender.com/cancel-day",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({ date })
@@ -570,7 +570,7 @@ function handleRoomAction(){
 
   const newStatus = currentStatus === "available" ? "unavailable" : "available";
 
-  fetch("http://localhost:5000/toggle-room",{
+  fetch("https://room-system-backend.onrender.com/toggle-room",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({ room_id, status: newStatus })

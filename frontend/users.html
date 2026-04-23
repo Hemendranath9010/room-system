@@ -90,7 +90,7 @@ if (!localStorage.getItem("userRole") || localStorage.getItem("userRole") !== "a
 // LOAD USERS
 function loadUsers(){
 
-  fetch("http://localhost:5000/users")
+  fetch("https://room-system-backend.onrender.com/users")
   .then(res=>res.json())
   .then(d=>{
 
@@ -138,7 +138,7 @@ function deleteUser(user_id){
 
   if(!confirm("Are you sure to delete this user?")) return;
 
-  fetch("http://localhost:5000/delete-user",{
+  fetch("https://room-system-backend.onrender.com/delete-user",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({ user_id })
@@ -155,7 +155,7 @@ function deleteUser(user_id){
 
 function toggleUser(user_id, newStatus){
 
-  fetch("http://localhost:5000/toggle-user",{
+  fetch("https://room-system-backend.onrender.com/toggle-user",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({ user_id, status: newStatus })

@@ -166,7 +166,7 @@ const userId = localStorage.getItem("userId");
 
 function loadBookings(){
 
-fetch(`http://localhost:5000/bookings?user_id=${userId}`)
+fetch(`https://room-system-backend.onrender.com/bookings?user_id=${userId}`)
 .then(res=>res.json())
 .then(d=>{
 
@@ -241,7 +241,7 @@ d.data.forEach(e=>{
 } 
 function checkAndChangeRoom(booking_id, date, time_slot, currentRoomId){
 
-fetch(`http://localhost:5000/can-change-room?booking_id=${booking_id}`)
+fetch(`https://room-system-backend.onrender.com/can-change-room?booking_id=${booking_id}`)
 .then(res=>res.json())
 .then(d=>{
 
@@ -254,7 +254,7 @@ const select = document.getElementById(`em-room-${booking_id}`);
 select.disabled = false;
 
 // ✅ FIX: proper encoding + console debug
-fetch(`http://localhost:5000/available-rooms?date=${date}&time_slot=${encodeURIComponent(time_slot)}&current_room_id=${currentRoomId}`)
+fetch(`https://room-system-backend.onrender.com/available-rooms?date=${date}&time_slot=${encodeURIComponent(time_slot)}&current_room_id=${currentRoomId}`)
 .then(res=>res.json())
 .then(r=>{
 
@@ -285,7 +285,7 @@ function changeEmergencyRoom(booking_id){
     return;
   }
 
-  fetch("http://localhost:5000/change-room",{
+  fetch("https://room-system-backend.onrender.com/change-room",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
@@ -306,7 +306,7 @@ function changeEmergencyRoom(booking_id){
 }
 function reportIssue(booking_id){
 
-  fetch("http://localhost:5000/report-issue",{
+  fetch("https://room-system-backend.onrender.com/report-issue",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({

@@ -128,7 +128,7 @@ const userId = localStorage.getItem("userId");
 
 function loadHistory(){
 
-fetch(`http://localhost:5000/history?user_id=${userId}`)
+fetch(`https://room-system-backend.onrender.com/history?user_id=${userId}`)
 .then(res => res.json())
 .then(d => {
 
@@ -161,7 +161,7 @@ fetch(`http://localhost:5000/history?user_id=${userId}`)
 }
 
 function clearHistory(){
-fetch(`http://localhost:5000/clear-history?user_id=${userId}`,{
+fetch(`https://room-system-backend.onrender.com/clear-history?user_id=${userId}`,{
   method:"DELETE"
 })
 .then(res=>res.json())

@@ -365,7 +365,7 @@ if(selectedDate.getTime() === today.getTime()){
 
     console.log("TIME:", fixedTime);
 
-    fetch("http://localhost:5000/submit-event",{
+    fetch("https://room-system-backend.onrender.com/submit-event",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
@@ -402,7 +402,7 @@ if(selectedDate.getTime() === today.getTime()){
 }
 // LOAD HISTORY
 function loadHistory(){
-  fetch(`http://localhost:5000/history?user_id=${userId}`)
+  fetch(`https://room-system-backend.onrender.com/history?user_id=${userId}`)
   .then(res=>res.json())
   .then(d=>{
     if(!d.success){
@@ -436,7 +436,7 @@ function toggleNotif(){
     notifOpen = false;
     return;
   }
-fetch(`http://localhost:5000/notifications?user_id=${userId}`)
+fetch(`https://room-system-backend.onrender.com/notifications?user_id=${userId}`)
   .then(res=>res.json())
   .then(d=>{
 
@@ -480,7 +480,7 @@ document.addEventListener("click", function(e){
 
 // BADGE COUNT
 function loadCount(){
-fetch(`http://localhost:5000/notifications?user_id=${userId}`)
+fetch(`https://room-system-backend.onrender.com/notifications?user_id=${userId}`)
 .then(res=>res.json())
 .then(d=>{
 if(d.data && d.data.length > 0){
@@ -508,7 +508,7 @@ function goToHistory(){
   window.location.href = "history.html";
 } 
 function clearNotifications(){
-fetch(`http://localhost:5000/clear-notifications?user_id=${userId}`,{
+fetch(`https://room-system-backend.onrender.com/clear-notifications?user_id=${userId}`,{
 method:"DELETE"
 })
 .then(()=> {
@@ -518,7 +518,7 @@ method:"DELETE"
 }
 
 function clearHistory(){
-fetch(`http://localhost:5000/clear-history?user_id=${userId}`,{
+fetch(`https://room-system-backend.onrender.com/clear-history?user_id=${userId}`,{
 method:"DELETE"
 })
 .then(res => res.json())
