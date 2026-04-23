@@ -369,15 +369,11 @@ if(selectedDate.getTime() === today.getTime()){
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
-        event_name: name,
-        event_type:document.getElementById("event_type").value,
-        event_date: date,
-        time_slot: fixedTime,
-        audience:document.getElementById("audience").value,
-        room_type:document.getElementById("room_type").value,
-        equipment:selectedEquip,
-        user_id:userId
-      })
+  event_name: name,
+  event_date: date,
+  time_slot: fixedTime,
+  user_id: userId
+})
     })
     .then(res=>res.json())
     .then(d=>{
