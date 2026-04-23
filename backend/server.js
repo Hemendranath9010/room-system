@@ -11,7 +11,7 @@ app.use(express.json());
 console.log("SERVER STARTED ✅");
 
 function generateWeeklySlots(daysAhead = 30){
-
+console.log("Generating slots...");
   const timetable = {
     1: [["09:00:00","10:00:00"], ["10:00:00","11:00:00"], ["11:00:00","12:00:00"],],
     2: [ ["09:00:00","12:00:00"] ],
@@ -148,6 +148,13 @@ app.post("/submit-event", (req, res) => {
   const minDate = new Date();
   minDate.setDate(minDate.getDate() + 3);
   minDate.setHours(0,0,0,0);
+console.log("REQUEST:", req.body);
+console.log("ROOMS FOUND:", rooms);
+  app.get("/debug-slots", (req,res)=>{
+  db.query("SELECT * FROM room_slots LIMIT 50", (err,data)=>{
+    res.send(data);
+  });
+});
 
   if(selected < minDate){
     return res.send({ success:false, message:"Booking must be at least 3 days in advance" });
@@ -170,13 +177,12 @@ app.post("/submit-event", (req, res) => {
     FROM rooms r
     JOIN room_slots s ON r.id = s.room_id
     WHERE r.capacity >= ?
-    AND r.room_type = ?
     AND r.status = 'available'
     AND s.date = ?
     AND s.status = 'free'
   `;
 
-  db.query(findRoom, [audience, room_type, event_date], (err, rooms) => {
+  db.query(findRoom, [audience,event_date], (err, rooms) => {
 
     if (err || rooms.length === 0) {
       return res.send({ success: false, message: "No free slots available" });
@@ -284,12 +290,11 @@ Object.values(roomMap).forEach(room=>{
     // 🔥 SELECT BEST ROOM
     validRooms.sort((a,b)=>a.capacity-b.capacity);
     const room = validRooms[0];
-    const firstSlot = room.slot_ids[0];
+    const slotsToBook = room.slot_ids;
 
-    // 🔥 STEP 1: LOCK SLOT (RACE CONDITION FIX)
-    db.query(
-      "UPDATE room_slots SET status='booked' WHERE id=? AND status='free'",
-      [firstSlot],
+db.query(
+  "UPDATE room_slots SET status='booked' WHERE id IN (?) AND status='free'",
+  [slotsToBook],
       (err2, result2) => {
 
         if (err2) return res.send({ success:false });
@@ -311,7 +316,7 @@ Object.values(roomMap).forEach(room=>{
             // 🔥 STEP 3: INSERT BOOKING
             db.query(
               "INSERT INTO bookings (event_id,room_id,date,time_slot,slot_id) VALUES (?,?,?,?,?)",
-              [ event_id, room.id, event_date, time_slot, firstSlot ],
+              [ event_id, room.id, event_date, time_slot, slotsToBook[0] ],
               (err4) => {
 
                 if (err4) return res.send({ success:false });
@@ -477,7 +482,7 @@ app.post("/cancel-event", (req,res)=>{
 
     // 🔥 STEP 2: FREE SLOT
     db.query(
-      "UPDATE room_slots SET status='free' WHERE id=?",
+      "UPDATE room_slots SET status='free' WHERE id IN ( SELECT slot_id FROM bookings WHERE event_id=? )",
       [slot_id],
       ()=>{
 
@@ -592,11 +597,11 @@ app.post("/change-room", (req, res) => {
       }
 
       // ✅ TAKE FIRST SLOT
-      const validSlot = usedSlots[0];
+      const slotsToBook = usedSlots;
 
       // 🔥 FREE OLD SLOT
       db.query(
-        "UPDATE room_slots SET status='free' WHERE id = (SELECT slot_id FROM bookings WHERE id=?)",
+        "UPDATE room_slots SET status='free' WHERE id = (SELECT slot_id FROM bookings WHERE id IN (?))",
         [booking_id],
         () => {
 
