@@ -243,40 +243,24 @@ app.post("/submit-event", (req, res) => {
     // 🔥 FIND VALID ROOMS
     let validRooms = [];
 
-    Object.values(roomMap).forEach(room=>{
+Object.values(roomMap).forEach(room => {
 
-      let slotRanges = room.slots.map(s=>{
-        const [sh, sm] = s.start.split(":").map(Number);
-        const [eh, em] = s.end.split(":").map(Number);
+  const slot = room.slots[0]; // only one full-day slot
 
-        return {
-          id: s.slot_id,
-          start: sh*60 + sm,
-          end: eh*60 + em
-        };
-      });
+  const [sh, sm] = slot.start.split(":").map(Number);
+  const [eh, em] = slot.end.split(":").map(Number);
 
-      slotRanges.sort((a,b)=>a.start-b.start);
+  const slotStart = sh * 60 + sm;
+  const slotEnd = eh * 60 + em;
 
-      let current = startMin;
-      let usedSlots = [];
-
-      for(let i=0;i<slotRanges.length;i++){
-        if(slotRanges[i].start <= current && slotRanges[i].end > current){
-          usedSlots.push(slotRanges[i].id);
-          current = slotRanges[i].end;
-
-          if(current >= endMin){
-            validRooms.push({
-              ...room,
-              slot_ids: usedSlots
-            });
-            break;
-          }
-        }
-      }
-
+  if (startMin >= slotStart && endMin <= slotEnd) {
+    validRooms.push({
+      ...room,
+      slot_ids: [slot.slot_id]
     });
+  }
+
+});
 
     if(validRooms.length === 0){
       return res.send({success:false, message:"No matching free slot"});
