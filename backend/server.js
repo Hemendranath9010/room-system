@@ -145,6 +145,8 @@ app.post("/submit-event", (req, res) => {
     equipment
   } = req.body;
 
+  console.log("REQUEST:", req.body);
+
   // 🔥 DATE VALIDATION
   const selected = new Date(event_date);
   selected.setHours(0,0,0,0);
@@ -152,14 +154,12 @@ app.post("/submit-event", (req, res) => {
   const minDate = new Date();
   minDate.setDate(minDate.getDate() + 3);
   minDate.setHours(0,0,0,0);
-console.log("REQUEST:", req.body);
-console.log("ROOMS FOUND:", rooms);
-  
 
   if(selected < minDate){
     return res.send({ success:false, message:"Booking must be at least 3 days in advance" });
   }
 
+  // 🔥 TIME VALIDATION
   const now = new Date();
   const eventDateTime = parseDateTime(event_date, time_slot);
 
@@ -171,7 +171,22 @@ console.log("ROOMS FOUND:", rooms);
     return res.send({ success:false, message:"Past time not allowed" });
   }
 
-  // 🔥 FIND ROOMS WITH FREE SLOTS
+  // 🔥 TIME CONVERT
+  function convertTo24(timeStr){
+    let [time, mod] = timeStr.split(" ");
+    let [h,m] = time.split(":").map(Number);
+
+    if(mod === "PM" && h !== 12) h+=12;
+    if(mod === "AM" && h === 12) h=0;
+
+    return `${String(h).padStart(2,'0')}:${m}:00`;
+  }
+
+  const [startStr, endStr] = time_slot.split(" - ");
+  const startSQL = convertTo24(startStr);
+  const endSQL = convertTo24(endStr);
+
+  // 🔥 FIND ROOMS
   const findRoom = `
     SELECT r.*, s.id AS slot_id, s.start_time, s.end_time
     FROM rooms r
@@ -180,15 +195,22 @@ console.log("ROOMS FOUND:", rooms);
     AND r.status = 'available'
     AND s.date = ?
     AND s.status = 'free'
+    AND TIME(s.start_time) <= ?
+    AND TIME(s.end_time) >= ?
   `;
 
-  db.query(findRoom, [audience,event_date], (err, rooms) => {
+  db.query(findRoom, [audience, event_date, startSQL, endSQL], (err, rooms) => {
 
-    if (err || rooms.length === 0) {
-      return res.send({ success: false, message: "No free slots available" });
+    if (err) {
+      console.log("DB ERROR:", err);
+      return res.send({ success:false });
     }
 
-    // 🔥 TIME FILTER
+    if (rooms.length === 0) {
+      return res.send({ success:false, message:"No free slots available" });
+    }
+
+    // 🔥 TIME IN MINUTES
     function toMinutes(t){
       let [time, mod] = t.split(" ");
       let [h,m] = time.split(":").map(Number);
@@ -199,65 +221,64 @@ console.log("ROOMS FOUND:", rooms);
       return h*60 + m;
     }
 
-    const [start, end] = time_slot.split(" - ");
-    const startMin = toMinutes(start);
-    const endMin = toMinutes(end);
+    const startMin = toMinutes(startStr);
+    const endMin = toMinutes(endStr);
 
-    // 🔥 GROUP BY ROOM
-const roomMap = {};
+    // 🔥 GROUP ROOMS
+    const roomMap = {};
 
-rooms.forEach(r=>{
-  if(!roomMap[r.id]){
-    roomMap[r.id] = {
-      ...r,
-      slots: []
-    };
-  }
-
-  roomMap[r.id].slots.push({
-    start: r.start_time,
-    end: r.end_time,
-    slot_id: r.slot_id
-  });
-});
-
-// 🔥 CHECK CONTINUOUS COVERAGE
-let validRooms = [];
-
-Object.values(roomMap).forEach(room=>{
-
-  let slotRanges = room.slots.map(s=>{
-    const [sh, sm] = s.start.split(":").map(Number);
-    const [eh, em] = s.end.split(":").map(Number);
-
-    return {
-      id: s.slot_id,
-      start: sh*60 + sm,
-      end: eh*60 + em
-    };
-  });
-
-  slotRanges.sort((a,b)=>a.start-b.start);
-
-  let current = startMin;
-  let usedSlots = [];
-
-  for(let i=0;i<slotRanges.length;i++){
-    if(slotRanges[i].start <= current && slotRanges[i].end > current){
-      usedSlots.push(slotRanges[i].id);
-      current = slotRanges[i].end;
-
-      if(current >= endMin){
-        validRooms.push({
-          ...room,
-          slot_ids: usedSlots
-        });
-        break;
+    rooms.forEach(r=>{
+      if(!roomMap[r.id]){
+        roomMap[r.id] = {
+          ...r,
+          slots: []
+        };
       }
-    }
-  }
 
-});
+      roomMap[r.id].slots.push({
+        start: r.start_time,
+        end: r.end_time,
+        slot_id: r.slot_id
+      });
+    });
+
+    // 🔥 FIND VALID ROOMS
+    let validRooms = [];
+
+    Object.values(roomMap).forEach(room=>{
+
+      let slotRanges = room.slots.map(s=>{
+        const [sh, sm] = s.start.split(":").map(Number);
+        const [eh, em] = s.end.split(":").map(Number);
+
+        return {
+          id: s.slot_id,
+          start: sh*60 + sm,
+          end: eh*60 + em
+        };
+      });
+
+      slotRanges.sort((a,b)=>a.start-b.start);
+
+      let current = startMin;
+      let usedSlots = [];
+
+      for(let i=0;i<slotRanges.length;i++){
+        if(slotRanges[i].start <= current && slotRanges[i].end > current){
+          usedSlots.push(slotRanges[i].id);
+          current = slotRanges[i].end;
+
+          if(current >= endMin){
+            validRooms.push({
+              ...room,
+              slot_ids: usedSlots
+            });
+            break;
+          }
+        }
+      }
+
+    });
 
     if(validRooms.length === 0){
       return res.send({success:false, message:"No matching free slot"});
@@ -292,45 +313,69 @@ Object.values(roomMap).forEach(room=>{
     const room = validRooms[0];
     const slotsToBook = room.slot_ids;
 
-db.query(
-  "UPDATE room_slots SET status='booked' WHERE id IN (?) AND status='free'",
-  [slotsToBook],
+    // 🔥 UPDATE SLOTS
+    db.query(
+      "UPDATE room_slots SET status='booked' WHERE id IN (?) AND status='free'",
+      [slotsToBook],
       (err2, result2) => {
 
-        if (err2) return res.send({ success:false });
+        if (err2) {
+          console.log(err2);
+          return res.send({ success:false });
+        }
 
         if (result2.affectedRows === 0){
           return res.send({ success:false, message:"Slot already taken" });
         }
 
-        // 🔥 STEP 2: INSERT EVENT
+        // 🔥 INSERT EVENT
         db.query(
           "INSERT INTO events (user_id,event_name,event_type,event_date,time_slot,audience,room_type) VALUES (?,?,?,?,?,?,?)",
           [user_id, event_name, event_type, event_date, time_slot, audience, room_type],
           (err3, result3) => {
 
-            if (err3) return res.send({ success:false });
+            if (err3) {
+              console.log(err3);
+              return res.send({ success:false });
+            }
 
             const event_id = result3.insertId;
 
-            // 🔥 STEP 3: INSERT BOOKING
-            db.query(
-              "INSERT INTO bookings (event_id,room_id,date,time_slot,slot_id) VALUES (?,?,?,?,?)",
-              [ event_id, room.id, event_date, time_slot, slotsToBook[0] ],
-              (err4) => {
+            // 🔥 INSERT MULTIPLE BOOKINGS
+            let pending = slotsToBook.length;
 
-                if (err4) return res.send({ success:false });
+            slotsToBook.forEach(slot_id => {
 
-                // 🔥 NOTIFICATIONS
-                const msg = `Event "${event_name}" booked in room ${room.room_name}`;
+              db.query(
+                "INSERT INTO bookings (event_id,room_id,date,time_slot,slot_id) VALUES (?,?,?,?,?)",
+                [event_id, room.id, event_date, time_slot, slot_id],
+                (err4) => {
 
-                db.query("INSERT INTO notifications (user_id,message) VALUES (?,?)",[user_id,msg]);
-                db.query("INSERT INTO notifications (user_id,message) VALUES (?,?)",[0,msg]);
+                  if (err4) {
+                    console.log(err4);
+                    return res.send({ success:false });
+                  }
 
-                res.send({ success:true, room: room.room_name });
+                  pending--;
 
-              }
-            );
+                  if (pending === 0) {
+
+                    const msg = `Event "${event_name}" booked in room ${room.room_name}`;
+
+                    db.query("INSERT INTO notifications (user_id,message) VALUES (?,?)",[user_id,msg]);
+                    db.query("INSERT INTO notifications (user_id,message) VALUES (?,?)",[0,msg]);
+
+                    return res.send({
+                      success:true,
+                      room: room.room_name
+                    });
+
+                  }
+
+                }
+              );
+
+            });
 
           }
         );
@@ -465,52 +510,54 @@ app.post("/cancel-event", (req,res)=>{
 
   const { event_id, user_id } = req.body;
 
-  // 🔥 STEP 1: GET BOOKING + SLOT
+  // 🔥 STEP 1: FREE ALL SLOTS (CORRECT WAY)
   db.query(`
-  SELECT b.room_id, e.event_date, s.id AS slot_id
-  FROM bookings b
-  JOIN events e ON b.event_id = e.id
-  JOIN room_slots s ON s.id = b.slot_id
-  WHERE e.id=?
-`, [event_id], (err,result)=>{
+    UPDATE room_slots s
+    JOIN bookings b ON s.id = b.slot_id
+    SET s.status='free'
+    WHERE b.event_id=?
+  `, [event_id], (err)=>{
 
-    if(err || result.length===0){
+    if(err){
+      console.log(err);
       return res.send({success:false});
     }
 
-    const slot_id = result[0].slot_id;
-
-    // 🔥 STEP 2: FREE SLOT
+    // 🔥 STEP 2: DELETE BOOKINGS
     db.query(
-      "UPDATE room_slots SET status='free' WHERE id IN ( SELECT slot_id FROM bookings WHERE event_id=? )",
-      [slot_id],
-      ()=>{
+      "DELETE FROM bookings WHERE event_id=?",
+      [event_id],
+      (err2)=>{
 
-        // 🔥 STEP 3: DELETE BOOKING
+        if(err2){
+          console.log(err2);
+          return res.send({success:false});
+        }
+
+        // 🔥 STEP 3: DELETE EVENT
         db.query(
-          "DELETE FROM bookings WHERE event_id=?",
+          "DELETE FROM events WHERE id=?",
           [event_id],
-          ()=>{
+          (err3)=>{
 
-            // 🔥 STEP 4: DELETE EVENT
+            if(err3){
+              console.log(err3);
+              return res.send({success:false});
+            }
+
+            // 🔥 STEP 4: NOTIFICATION
             db.query(
-              "DELETE FROM events WHERE id=?",
-              [event_id],
-              ()=>{
-
-                // 🔥 STEP 5: NOTIFICATION
-                db.query(
-                  "INSERT INTO notifications (user_id, message) VALUES (?, ?)",
-                  [user_id, "Your event has been cancelled by admin"]
-                );
-
-                res.send({success:true});
-              }
+              "INSERT INTO notifications (user_id, message) VALUES (?, ?)",
+              [user_id, "Your event has been cancelled"]
             );
+
+            res.send({success:true});
           }
         );
+
       }
     );
+
   });
 
 });
@@ -529,10 +576,11 @@ app.post("/change-room", (req, res) => {
   `, [booking_id], (err, result) => {
 
     if (err || result.length === 0) {
+      console.log(err);
       return res.send({ success: false });
     }
 
-    const { old_room_id, event_date, time_slot } = result[0];
+    const { event_date, time_slot } = result[0];
 
     // 🔥 FIND FREE SLOTS IN NEW ROOM
     db.query(`
@@ -571,71 +619,65 @@ app.post("/change-room", (req, res) => {
         };
       });
 
-      // 🔥 SORT SLOTS
       slotRanges.sort((a, b) => a.start - b.start);
 
       let current = startMin;
       let usedSlots = [];
 
-      // 🔥 FIND CONTINUOUS SLOT COVERAGE
+      // 🔥 FIND CONTINUOUS SLOT
       for (let i = 0; i < slotRanges.length; i++) {
-
         if (slotRanges[i].start <= current && slotRanges[i].end > current) {
-
           usedSlots.push(slotRanges[i].id);
           current = slotRanges[i].end;
 
-          if (current >= endMin) {
-            break;
-          }
+          if (current >= endMin) break;
         }
       }
 
-      // ❌ NOT ENOUGH COVERAGE
       if (current < endMin) {
         return res.send({ success: false, message: "No continuous slot" });
       }
 
-      // ✅ TAKE FIRST SLOT
       const slotsToBook = usedSlots;
 
-      // 🔥 FREE OLD SLOT
-      db.query(
-        "UPDATE room_slots SET status='free' WHERE id = (SELECT slot_id FROM bookings WHERE id IN (?))",
-        [booking_id],
-        () => {
+      // 🔥 FREE OLD SLOT(S)
+      db.query(`
+        UPDATE room_slots 
+        SET status='free' 
+        WHERE id IN (
+          SELECT slot_id FROM bookings WHERE id=?
+        )
+      `, [booking_id], () => {
 
-          // 🔥 BOOK NEW SLOT
-          db.query(
-            "UPDATE room_slots SET status='booked' WHERE id=? AND status='free'",
-            [validSlot],
-            (err3, result3) => {
+        // 🔥 BOOK NEW SLOT(S)
+        db.query(
+          "UPDATE room_slots SET status='booked' WHERE id IN (?) AND status='free'",
+          [slotsToBook],
+          (err3, result3) => {
 
-              if (err3 || result3.affectedRows === 0) {
-                return res.send({ success: false, message: "Slot already taken" });
-              }
-
-              // 🔥 UPDATE BOOKING
-              db.query(
-                "UPDATE bookings SET room_id=?, slot_id=? WHERE id=?",
-                [new_room_id, validSlot, booking_id],
-                () => {
-                  res.send({ success: true });
-                }
-              );
-
+            if (err3 || result3.affectedRows === 0) {
+              return res.send({ success: false, message: "Slot already taken" });
             }
-          );
 
-        }
-      );
+            // 🔥 UPDATE BOOKING (use first slot)
+            db.query(
+              "UPDATE bookings SET room_id=?, slot_id=? WHERE id=?",
+              [new_room_id, slotsToBook[0], booking_id],
+              () => {
+                res.send({ success: true });
+              }
+            );
+
+          }
+        );
+
+      });
 
     });
 
   });
 
 });
-
 // ✅ CLEAR HISTORY (ONLY COMPLETED)
 app.delete("/clear-history", (req, res) => {
   const user_id = req.query.user_id;
@@ -1035,7 +1077,7 @@ function cleanOldSlots(){
   db.query("DELETE FROM room_slots WHERE date < ?", [today]);
 }
 
-generateWeeklySlots(120); // generate for next 60 days
+generateWeeklySlots(60); // generate for next 60 days
 setInterval(()=>{
   generateWeeklySlots(30);
 }, 24 * 60 * 60 * 1000); // every day
