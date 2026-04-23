@@ -145,6 +145,9 @@ app.post("/submit-event", (req, res) => {
     equipment
   } = req.body;
 
+  const safeAudience = Number(audience) || 1;
+  const safeEquipment = Array.isArray(equipment) ? equipment : [];
+
   console.log("REQUEST:", req.body);
 
   // 🔥 DATE VALIDATION
@@ -191,13 +194,12 @@ app.post("/submit-event", (req, res) => {
   SELECT r.*, s.id AS slot_id, s.start_time, s.end_time
   FROM rooms r
   JOIN room_slots s ON r.id = s.room_id
-  WHERE r.capacity >= ?
-  AND r.status = 'available'
+  WHERE r.status = 'available'
   AND s.date = ?
   AND s.status = 'free'
 `;
 
-  db.query(findRoom, [audience, event_date], (err, rooms) => {
+  db.query(findRoom, [ event_date], (err, rooms) => {
 
     if (err) {
       console.log("DB ERROR:", err);
@@ -269,7 +271,7 @@ Object.values(roomMap).forEach(room => {
     // 🔥 EQUIPMENT FILTER
     validRooms = validRooms.filter(room => {
 
-      if (!equipment || equipment.length === 0) return true;
+if (!safeEquipment || safeEquipment.length === 0) return true;
 
       let roomEquip = [];
 
@@ -281,7 +283,7 @@ Object.values(roomMap).forEach(room => {
         roomEquip = [];
       }
 
-      return equipment.every(e =>
+      return safeEquipment.every(e =>
         roomEquip.map(x => x.toLowerCase().trim()).includes(e.toLowerCase().trim())
       );
     });
