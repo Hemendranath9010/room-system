@@ -188,18 +188,16 @@ app.post("/submit-event", (req, res) => {
 
   // 🔥 FIND ROOMS
   const findRoom = `
-    SELECT r.*, s.id AS slot_id, s.start_time, s.end_time
-    FROM rooms r
-    JOIN room_slots s ON r.id = s.room_id
-    WHERE r.capacity >= ?
-    AND r.status = 'available'
-    AND s.date = ?
-    AND s.status = 'free'
-    AND TIME(s.start_time) <= ?
-    AND TIME(s.end_time) >= ?
-  `;
+  SELECT r.*, s.id AS slot_id, s.start_time, s.end_time
+  FROM rooms r
+  JOIN room_slots s ON r.id = s.room_id
+  WHERE r.capacity >= ?
+  AND r.status = 'available'
+  AND s.date = ?
+  AND s.status = 'free'
+`;
 
-  db.query(findRoom, [audience, event_date, startSQL, endSQL], (err, rooms) => {
+  db.query(findRoom, [audience, event_date], (err, rooms) => {
 
     if (err) {
       console.log("DB ERROR:", err);
