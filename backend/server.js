@@ -56,7 +56,11 @@ console.log("Generating slots...");
   });
 
 }
-
+app.get("/debug-slots", (req,res)=>{
+  db.query("SELECT * FROM room_slots LIMIT 50", (err,data)=>{
+    res.send(data);
+  });
+});
 // ✅ GET ALL ROOMS
 app.get("/rooms", (req, res) => {
   db.query("SELECT id, room_name, status FROM rooms", (err, result) => {
@@ -150,11 +154,7 @@ app.post("/submit-event", (req, res) => {
   minDate.setHours(0,0,0,0);
 console.log("REQUEST:", req.body);
 console.log("ROOMS FOUND:", rooms);
-  app.get("/debug-slots", (req,res)=>{
-  db.query("SELECT * FROM room_slots LIMIT 50", (err,data)=>{
-    res.send(data);
-  });
-});
+  
 
   if(selected < minDate){
     return res.send({ success:false, message:"Booking must be at least 3 days in advance" });
